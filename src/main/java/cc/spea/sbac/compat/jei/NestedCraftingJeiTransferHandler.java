@@ -8,7 +8,9 @@ import mezz.jei.api.recipe.transfer.IRecipeTransferError;
 import mezz.jei.api.recipe.transfer.IRecipeTransferHandlerHelper;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.inventory.MenuType;
+import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.crafting.CraftingRecipe;
+import net.minecraft.world.item.crafting.Ingredient;
 import net.minecraft.world.item.crafting.RecipeHolder;
 import net.neoforged.neoforge.network.PacketDistributor;
 import net.p3pp3rf1y.sophisticatedbackpacks.common.gui.BackpackContainer;
@@ -16,6 +18,8 @@ import net.p3pp3rf1y.sophisticatedbackpacks.init.ModItems;
 import net.p3pp3rf1y.sophisticatedcore.compat.recipeviewers.jei.JeiCraftingContainerRecipeTransferHandlerBase;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Optional;
 
 public class NestedCraftingJeiTransferHandler extends JeiCraftingContainerRecipeTransferHandlerBase<BackpackContainer, RecipeHolder<CraftingRecipe>> {
@@ -46,26 +50,54 @@ public class NestedCraftingJeiTransferHandler extends JeiCraftingContainerRecipe
                                                boolean maxTransfer, boolean doTransfer) {
         IRecipeTransferError baseResult = super.transferRecipe(container, recipe, recipeSlotsView, player, maxTransfer, false);
 
-        // Propagate internal errors (no crafting upgrade found, container mismatch, etc.)
+        // Propagate internal errors (no crafting upgrade, validation failure, etc.)
         if (baseResult != null && baseResult.getType() == IRecipeTransferError.Type.INTERNAL) {
             return baseResult;
         }
 
         if (doTransfer) {
             if (baseResult == null) {
-                // All items in visible inventory — use the standard JEI transfer path
                 return super.transferRecipe(container, recipe, recipeSlotsView, player, maxTransfer, true);
             } else {
-                // Items missing from visible inventory — server fills from nested backpacks
-                // via getInventoryForUpgradeProcessing() which traverses inception upgrades
+                // Items not all in visible inventory — server extracts from nested backpacks
                 PacketDistributor.sendToServer(new NestedCraftingTransferPayload(recipe.id()));
                 return null;
             }
         }
 
-        // doTransfer=false: return the base result so JEI shows an accurate button state.
-        // null = green (all items visible), user error = orange/red (some items missing from
-        // visible inventory — may still be in nested backpacks, clicking will attempt that).
+        // doTransfer=false: if visible inventory is sufficient, green; otherwise check the
+        // server-synced processing inventory (sent when the backpack was opened) which
+        // includes nested backpack items accessible via the inception upgrade.
+        if (baseResult != null && canSatisfyFromSyncedInventory(recipe, player)) {
+            return null;
+        }
         return baseResult;
+    }
+
+    // Checks whether the recipe can be satisfied from the server-synced processing inventory
+    // (includes nested backpack items) combined with the player's own inventory.
+    private boolean canSatisfyFromSyncedInventory(RecipeHolder<CraftingRecipe> recipe, Player player) {
+        List<ItemStack> available = new ArrayList<>();
+        for (ItemStack stack : SyncNestedInventoryPayload.clientProcessingItems) {
+            if (!stack.isEmpty()) available.add(stack.copy());
+        }
+        for (int i = 0; i < player.getInventory().getContainerSize(); i++) {
+            ItemStack stack = player.getInventory().getItem(i);
+            if (!stack.isEmpty()) available.add(stack.copy());
+        }
+
+        for (Ingredient ingredient : recipe.value().getIngredients()) {
+            if (ingredient.isEmpty()) continue;
+            boolean found = false;
+            for (ItemStack stack : available) {
+                if (!stack.isEmpty() && ingredient.test(stack)) {
+                    stack.shrink(1);
+                    found = true;
+                    break;
+                }
+            }
+            if (!found) return false;
+        }
+        return true;
     }
 }
