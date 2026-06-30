@@ -4,7 +4,6 @@ import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.p3pp3rf1y.sophisticatedcore.api.IStorageWrapper;
 import net.p3pp3rf1y.sophisticatedcore.upgrades.crafting.CraftingUpgradeWrapper;
-import net.p3pp3rf1y.sophisticatedcore.util.InventoryHelper;
 
 import java.util.function.Consumer;
 
@@ -15,14 +14,21 @@ public class NestedCraftingUpgradeWrapper extends CraftingUpgradeWrapper {
 
 	@Override
 	public boolean extractFromStorageOrPlayer(Player player, ItemStack stack) {
-		return extractFromUpgradeProcessingInventory(stack) || extractFromPlayer(player, stack);
+		return !NestedCraftingSourceHelper.extractFromCraftingSources(this, candidate -> ItemStack.isSameItemSameComponents(candidate, stack)).isEmpty()
+				|| extractFromPlayer(player, stack);
 	}
 
-	private boolean extractFromUpgradeProcessingInventory(ItemStack stack) {
-		return !InventoryHelper
-				.extractFromInventory(candidate -> ItemStack.isSameItemSameComponents(candidate, stack), 1, storageWrapper.getInventoryForUpgradeProcessing(),
-						false)
-				.isEmpty();
+	public IStorageWrapper getStorageWrapper() {
+		return storageWrapper;
+	}
+
+	public boolean shouldUseMemorizedBackpackSlotsForNestedCrafting() {
+		return upgrade.getOrDefault(Sbac.USE_MEMORIZED_BACKPACK_SLOTS.get(), false);
+	}
+
+	public void setUseMemorizedBackpackSlotsForNestedCrafting(boolean useMemorizedBackpackSlots) {
+		upgrade.set(Sbac.USE_MEMORIZED_BACKPACK_SLOTS.get(), useMemorizedBackpackSlots);
+		save();
 	}
 
 	private boolean extractFromPlayer(Player player, ItemStack stack) {

@@ -1,4 +1,6 @@
 {
   "item.sophisticatedbackpacks.advanced_crafting_upgrade": "Advanced Crafting Upgrade",
-  "item.sophisticatedbackpacks.advanced_crafting_upgrade.tooltip": "Crafting table in an upgrade tab\nRefills from inception-accessible backpacks"
+  "item.sophisticatedbackpacks.advanced_crafting_upgrade.tooltip": "Crafting table in an upgrade tab\nRefills from inception-accessible backpacks\nCan limit nested crafting pulls to memorized backpack slots",
+  "gui.sophisticatedbackpacks.upgrades.buttons.use_memorized_backpack_slots": "Only pull from memorized backpack slots",
+  "gui.sophisticatedbackpacks.upgrades.buttons.use_all_backpack_slots": "Pull from all accessible backpacks"
 }

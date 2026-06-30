@@ -1,5 +1,7 @@
 package cc.spea.sbac.compat.jei;
 
+import cc.spea.sbac.NestedCraftingSourceHelper;
+import cc.spea.sbac.NestedCraftingUpgradeWrapper;
 import cc.spea.sbac.Sbac;
 import io.netty.buffer.ByteBuf;
 import net.minecraft.network.codec.StreamCodec;
@@ -60,9 +62,6 @@ public record NestedCraftingTransferPayload(ResourceLocation recipeId) implement
                         upgradeContainer.setIsOpen(true);
                         backpackContainer.setOpenTabId(upgradeContainer.getUpgradeContainerId());
 
-                        // On the server, getInventoryForUpgradeProcessing() includes items from
-                        // nested backpacks via the inception upgrade — unlike the client side.
-                        var processingInv = backpackContainer.getStorageWrapper().getInventoryForUpgradeProcessing();
                         List<Slot> craftingSlots = craftingContainer.getRecipeSlots();
 
                         // Return any existing grid items to the player before refilling
@@ -82,9 +81,14 @@ public record NestedCraftingTransferPayload(ResourceLocation recipeId) implement
                             Ingredient ingredient = ingredients.get(i);
                             if (ingredient.isEmpty()) continue;
 
-                            ItemStack extracted = InventoryHelper.extractFromInventory(
-                                candidate -> ingredient.test(candidate), 1, processingInv, false
-                            );
+                            ItemStack extracted;
+                            if (upgradeContainer.getUpgradeWrapper() instanceof NestedCraftingUpgradeWrapper nestedWrapper) {
+                                extracted = NestedCraftingSourceHelper.extractFromCraftingSources(nestedWrapper, ingredient::test);
+                            } else {
+                                extracted = InventoryHelper.extractFromInventory(
+                                    ingredient::test, 1, backpackContainer.getStorageWrapper().getInventoryForUpgradeProcessing(), false
+                                );
+                            }
 
                             if (extracted.isEmpty()) {
                                 for (int j = 0; j < player.getInventory().getContainerSize(); j++) {

@@ -14,17 +14,20 @@ import java.util.List;
 /**
  * Sent server→client when a BackpackContainer opens so the JEI transfer handler
  * can accurately check ingredient availability against nested backpack contents.
- * Carries all items visible to getInventoryForUpgradeProcessing() on the server.
+ * Carries both all processing items and the memory-whitelisted source items.
  */
-public record SyncNestedInventoryPayload(List<ItemStack> processingItems) implements CustomPacketPayload {
+public record SyncNestedInventoryPayload(List<ItemStack> processingItems, List<ItemStack> whitelistedProcessingItems) implements CustomPacketPayload {
 
     public static final Type<SyncNestedInventoryPayload> TYPE = new Type<>(
         ResourceLocation.fromNamespaceAndPath(Sbac.MOD_ID, "sync_nested_inventory")
     );
 
     public static final StreamCodec<RegistryFriendlyByteBuf, SyncNestedInventoryPayload> STREAM_CODEC =
-        ItemStack.OPTIONAL_STREAM_CODEC.apply(ByteBufCodecs.list())
-            .map(SyncNestedInventoryPayload::new, SyncNestedInventoryPayload::processingItems);
+        StreamCodec.composite(
+            ItemStack.OPTIONAL_STREAM_CODEC.apply(ByteBufCodecs.list()), SyncNestedInventoryPayload::processingItems,
+            ItemStack.OPTIONAL_STREAM_CODEC.apply(ByteBufCodecs.list()), SyncNestedInventoryPayload::whitelistedProcessingItems,
+            SyncNestedInventoryPayload::new
+        );
 
     @Override
     public Type<? extends CustomPacketPayload> type() {
@@ -33,8 +36,12 @@ public record SyncNestedInventoryPayload(List<ItemStack> processingItems) implem
 
     // Client-side cache — replaced each time the player opens a backpack
     public static volatile List<ItemStack> clientProcessingItems = List.of();
+    public static volatile List<ItemStack> clientWhitelistedProcessingItems = List.of();
 
     public static void handle(SyncNestedInventoryPayload payload, IPayloadContext context) {
-        context.enqueueWork(() -> clientProcessingItems = payload.processingItems());
+        context.enqueueWork(() -> {
+            clientProcessingItems = payload.processingItems();
+            clientWhitelistedProcessingItems = payload.whitelistedProcessingItems();
+        });
     }
 }

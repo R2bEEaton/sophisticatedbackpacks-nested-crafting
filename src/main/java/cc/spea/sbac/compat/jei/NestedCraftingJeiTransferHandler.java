@@ -1,5 +1,6 @@
 package cc.spea.sbac.compat.jei;
 
+import cc.spea.sbac.NestedCraftingUpgradeContainer;
 import mezz.jei.api.constants.RecipeTypes;
 import mezz.jei.api.gui.ingredient.IRecipeSlotsView;
 import mezz.jei.api.helpers.IStackHelper;
@@ -68,7 +69,7 @@ public class NestedCraftingJeiTransferHandler extends JeiCraftingContainerRecipe
         // doTransfer=false: if visible inventory is sufficient, green; otherwise check the
         // server-synced processing inventory (sent when the backpack was opened) which
         // includes nested backpack items accessible via the inception upgrade.
-        if (baseResult != null && canSatisfyFromSyncedInventory(recipe, player)) {
+        if (baseResult != null && canSatisfyFromSyncedInventory(container, recipe, player)) {
             return null;
         }
         return baseResult;
@@ -76,9 +77,17 @@ public class NestedCraftingJeiTransferHandler extends JeiCraftingContainerRecipe
 
     // Checks whether the recipe can be satisfied from the server-synced processing inventory
     // (includes nested backpack items) combined with the player's own inventory.
-    private boolean canSatisfyFromSyncedInventory(RecipeHolder<CraftingRecipe> recipe, Player player) {
+    private boolean canSatisfyFromSyncedInventory(BackpackContainer container, RecipeHolder<CraftingRecipe> recipe, Player player) {
         List<ItemStack> available = new ArrayList<>();
-        for (ItemStack stack : SyncNestedInventoryPayload.clientProcessingItems) {
+        boolean useWhitelist = container.getOpenOrFirstCraftingContainer(net.minecraft.world.item.crafting.RecipeType.CRAFTING)
+            .map(craftingContainer -> craftingContainer instanceof NestedCraftingUpgradeContainer nestedContainer
+                && nestedContainer.shouldUseMemorizedBackpackSlotsForNestedCrafting())
+            .orElse(false);
+        List<ItemStack> syncedItems = useWhitelist
+            ? SyncNestedInventoryPayload.clientWhitelistedProcessingItems
+            : SyncNestedInventoryPayload.clientProcessingItems;
+
+        for (ItemStack stack : syncedItems) {
             if (!stack.isEmpty()) available.add(stack.copy());
         }
         for (int i = 0; i < player.getInventory().getContainerSize(); i++) {
