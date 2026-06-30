@@ -1,5 +1,6 @@
 package cc.spea.sbac;
 
+import cc.spea.sbac.compat.jei.NestedCraftingTransferPayload;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.world.item.CreativeModeTabs;
@@ -7,6 +8,7 @@ import net.minecraft.world.item.Item;
 import net.neoforged.bus.api.IEventBus;
 import net.neoforged.fml.common.Mod;
 import net.neoforged.neoforge.event.BuildCreativeModeTabContentsEvent;
+import net.neoforged.neoforge.network.event.RegisterPayloadHandlersEvent;
 import net.neoforged.neoforge.registries.DeferredHolder;
 import net.neoforged.neoforge.registries.DeferredRegister;
 import net.neoforged.neoforge.registries.RegisterEvent;
@@ -26,6 +28,15 @@ public class Sbac {
 		ITEMS.register(modBus);
 		modBus.addListener(this::registerContainers);
 		modBus.addListener(this::addCreativeTabItems);
+		modBus.addListener(this::registerPayloads);
+	}
+
+	private void registerPayloads(RegisterPayloadHandlersEvent event) {
+		event.registrar("1").playToServer(
+			NestedCraftingTransferPayload.TYPE,
+			NestedCraftingTransferPayload.STREAM_CODEC,
+			NestedCraftingTransferPayload::handle
+		);
 	}
 
 	private void registerContainers(RegisterEvent event) {
