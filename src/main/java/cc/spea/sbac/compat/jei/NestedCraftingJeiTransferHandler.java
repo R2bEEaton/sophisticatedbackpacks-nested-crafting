@@ -14,15 +14,11 @@ import net.neoforged.neoforge.network.PacketDistributor;
 import net.p3pp3rf1y.sophisticatedbackpacks.common.gui.BackpackContainer;
 import net.p3pp3rf1y.sophisticatedbackpacks.init.ModItems;
 import net.p3pp3rf1y.sophisticatedcore.compat.recipeviewers.jei.JeiCraftingContainerRecipeTransferHandlerBase;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.Optional;
 
 public class NestedCraftingJeiTransferHandler extends JeiCraftingContainerRecipeTransferHandlerBase<BackpackContainer, RecipeHolder<CraftingRecipe>> {
-
-    private static final Logger LOGGER = LogManager.getLogger();
 
     public NestedCraftingJeiTransferHandler(IRecipeTransferHandlerHelper transferHelper, IStackHelper stackHelper) {
         super(transferHelper, stackHelper);
@@ -48,32 +44,28 @@ public class NestedCraftingJeiTransferHandler extends JeiCraftingContainerRecipe
     public IRecipeTransferError transferRecipe(BackpackContainer container, RecipeHolder<CraftingRecipe> recipe,
                                                IRecipeSlotsView recipeSlotsView, Player player,
                                                boolean maxTransfer, boolean doTransfer) {
-        LOGGER.debug("[sbac] transferRecipe called, doTransfer={}", doTransfer);
-
         IRecipeTransferError baseResult = super.transferRecipe(container, recipe, recipeSlotsView, player, maxTransfer, false);
-        if (baseResult == null) {
-            // Visible inventory satisfies the recipe — use the standard transfer path
-            if (doTransfer) {
-                return super.transferRecipe(container, recipe, recipeSlotsView, player, maxTransfer, true);
-            }
-            return null;
-        }
 
-        LOGGER.debug("[sbac] Base check error type={}", baseResult.getType());
-
-        // Internal errors mean something structural is wrong (no crafting upgrade found, validation failure).
-        // For user-facing / missing-items errors, allow the transfer: the server-side
-        // extractFromStorageOrPlayer will pull ingredients from nested backpacks via inception upgrade.
-        // We can't check nested inventory client-side because it isn't synced to the client.
-        if (baseResult.getType() == IRecipeTransferError.Type.INTERNAL) {
+        // Propagate internal errors (no crafting upgrade found, container mismatch, etc.)
+        if (baseResult != null && baseResult.getType() == IRecipeTransferError.Type.INTERNAL) {
             return baseResult;
         }
 
         if (doTransfer) {
-            // Server-side handler extracts from getInventoryForUpgradeProcessing(),
-            // which includes nested backpack items via the inception upgrade.
-            PacketDistributor.sendToServer(new NestedCraftingTransferPayload(recipe.id()));
+            if (baseResult == null) {
+                // All items in visible inventory — use the standard JEI transfer path
+                return super.transferRecipe(container, recipe, recipeSlotsView, player, maxTransfer, true);
+            } else {
+                // Items missing from visible inventory — server fills from nested backpacks
+                // via getInventoryForUpgradeProcessing() which traverses inception upgrades
+                PacketDistributor.sendToServer(new NestedCraftingTransferPayload(recipe.id()));
+                return null;
+            }
         }
-        return null;
+
+        // doTransfer=false: return the base result so JEI shows an accurate button state.
+        // null = green (all items visible), user error = orange/red (some items missing from
+        // visible inventory — may still be in nested backpacks, clicking will attempt that).
+        return baseResult;
     }
 }
