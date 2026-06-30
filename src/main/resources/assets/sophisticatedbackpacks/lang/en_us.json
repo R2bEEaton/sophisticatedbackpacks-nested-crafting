@@ -2,5 +2,11 @@
   "item.sophisticatedbackpacks.advanced_crafting_upgrade": "Advanced Crafting Upgrade",
   "item.sophisticatedbackpacks.advanced_crafting_upgrade.tooltip": "Crafting table in an upgrade tab\nRefills from inception-accessible backpacks\nCan limit nested crafting pulls to memorized backpack slots",
   "gui.sophisticatedbackpacks.upgrades.buttons.use_memorized_backpack_slots": "Only pull from memorized backpack slots",
-  "gui.sophisticatedbackpacks.upgrades.buttons.use_all_backpack_slots": "Pull from all accessible backpacks"
+  "gui.sophisticatedbackpacks.upgrades.buttons.use_all_backpack_slots": "Pull from all accessible backpacks",
+  "gui.sophisticatedbackpacks.upgrades.buttons.source_priority_storage_first": "Pull from backpack storage first",
+  "gui.sophisticatedbackpacks.upgrades.buttons.source_priority_nested_first": "Pull from nested backpacks first",
+  "gui.sophisticatedbackpacks.upgrades.buttons.source_priority_player_first": "Pull from player inventory first",
+  "gui.sophisticatedbackpacks.upgrades.buttons.source_priority_memorized_first": "Pull from memorized backpack slots first",
+  "gui.sophisticatedbackpacks.upgrades.buttons.preserve_last_item": "Do not use the last item",
+  "gui.sophisticatedbackpacks.upgrades.buttons.use_last_item": "Allow using the last item"
 }

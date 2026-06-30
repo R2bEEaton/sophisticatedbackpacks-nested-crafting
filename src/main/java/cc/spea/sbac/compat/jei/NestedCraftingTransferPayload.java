@@ -83,20 +83,19 @@ public record NestedCraftingTransferPayload(ResourceLocation recipeId) implement
 
                             ItemStack extracted;
                             if (upgradeContainer.getUpgradeWrapper() instanceof NestedCraftingUpgradeWrapper nestedWrapper) {
-                                extracted = NestedCraftingSourceHelper.extractFromCraftingSources(nestedWrapper, ingredient::test);
+                                extracted = NestedCraftingSourceHelper.extractFromCraftingSources(nestedWrapper, player, ingredient::test);
                             } else {
                                 extracted = InventoryHelper.extractFromInventory(
                                     ingredient::test, 1, backpackContainer.getStorageWrapper().getInventoryForUpgradeProcessing(), false
                                 );
-                            }
-
-                            if (extracted.isEmpty()) {
-                                for (int j = 0; j < player.getInventory().getContainerSize(); j++) {
-                                    ItemStack playerItem = player.getInventory().getItem(j);
-                                    if (!playerItem.isEmpty() && ingredient.test(playerItem)) {
-                                        extracted = playerItem.split(1);
-                                        player.getInventory().setItem(j, playerItem.isEmpty() ? ItemStack.EMPTY : playerItem);
-                                        break;
+                                if (extracted.isEmpty()) {
+                                    for (int j = 0; j < player.getInventory().getContainerSize(); j++) {
+                                        ItemStack playerItem = player.getInventory().getItem(j);
+                                        if (!playerItem.isEmpty() && ingredient.test(playerItem)) {
+                                            extracted = playerItem.split(1);
+                                            player.getInventory().setItem(j, playerItem.isEmpty() ? ItemStack.EMPTY : playerItem);
+                                            break;
+                                        }
                                     }
                                 }
                             }

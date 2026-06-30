@@ -14,8 +14,7 @@ public class NestedCraftingUpgradeWrapper extends CraftingUpgradeWrapper {
 
 	@Override
 	public boolean extractFromStorageOrPlayer(Player player, ItemStack stack) {
-		return !NestedCraftingSourceHelper.extractFromCraftingSources(this, candidate -> ItemStack.isSameItemSameComponents(candidate, stack)).isEmpty()
-				|| extractFromPlayer(player, stack);
+		return !NestedCraftingSourceHelper.extractFromCraftingSources(this, player, candidate -> ItemStack.isSameItemSameComponents(candidate, stack)).isEmpty();
 	}
 
 	public IStorageWrapper getStorageWrapper() {
@@ -31,12 +30,21 @@ public class NestedCraftingUpgradeWrapper extends CraftingUpgradeWrapper {
 		save();
 	}
 
-	private boolean extractFromPlayer(Player player, ItemStack stack) {
-		int playerInvMatchingIndex = player.getInventory().findSlotMatchingItem(stack);
-		if (playerInvMatchingIndex >= 0) {
-			player.getInventory().removeItem(playerInvMatchingIndex, 1);
-			return true;
-		}
-		return false;
+	public NestedCraftingSourcePriority getSourcePriority() {
+		return NestedCraftingSourcePriority.byId(upgrade.getOrDefault(Sbac.SOURCE_PRIORITY.get(), NestedCraftingSourcePriority.STORAGE_FIRST.getId()));
+	}
+
+	public void setSourcePriority(NestedCraftingSourcePriority sourcePriority) {
+		upgrade.set(Sbac.SOURCE_PRIORITY.get(), sourcePriority.getId());
+		save();
+	}
+
+	public boolean shouldPreserveLastItem() {
+		return upgrade.getOrDefault(Sbac.PRESERVE_LAST_ITEM.get(), false);
+	}
+
+	public void setPreserveLastItem(boolean preserveLastItem) {
+		upgrade.set(Sbac.PRESERVE_LAST_ITEM.get(), preserveLastItem);
+		save();
 	}
 }

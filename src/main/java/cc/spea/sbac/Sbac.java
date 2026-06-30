@@ -39,6 +39,14 @@ public class Sbac {
 			"use_memorized_backpack_slots",
 			builder -> builder.persistent(Codec.BOOL).networkSynchronized(ByteBufCodecs.BOOL)
 	);
+	public static final DeferredHolder<DataComponentType<?>, DataComponentType<Integer>> SOURCE_PRIORITY = DATA_COMPONENTS.registerComponentType(
+			"source_priority",
+			builder -> builder.persistent(Codec.INT).networkSynchronized(ByteBufCodecs.INT)
+	);
+	public static final DeferredHolder<DataComponentType<?>, DataComponentType<Boolean>> PRESERVE_LAST_ITEM = DATA_COMPONENTS.registerComponentType(
+			"preserve_last_item",
+			builder -> builder.persistent(Codec.BOOL).networkSynchronized(ByteBufCodecs.BOOL)
+	);
 
 	public Sbac(IEventBus modBus) {
 		ITEMS.register(modBus);

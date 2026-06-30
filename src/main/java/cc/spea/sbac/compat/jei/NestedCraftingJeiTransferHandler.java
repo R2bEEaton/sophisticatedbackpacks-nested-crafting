@@ -79,20 +79,26 @@ public class NestedCraftingJeiTransferHandler extends JeiCraftingContainerRecipe
     // (includes nested backpack items) combined with the player's own inventory.
     private boolean canSatisfyFromSyncedInventory(BackpackContainer container, RecipeHolder<CraftingRecipe> recipe, Player player) {
         List<ItemStack> available = new ArrayList<>();
-        boolean useWhitelist = container.getOpenOrFirstCraftingContainer(net.minecraft.world.item.crafting.RecipeType.CRAFTING)
-            .map(craftingContainer -> craftingContainer instanceof NestedCraftingUpgradeContainer nestedContainer
-                && nestedContainer.shouldUseMemorizedBackpackSlotsForNestedCrafting())
-            .orElse(false);
+        boolean useWhitelist = false;
+        boolean preserveLastItem = false;
+        var nestedContainerOptional = container.getOpenOrFirstCraftingContainer(net.minecraft.world.item.crafting.RecipeType.CRAFTING)
+            .filter(NestedCraftingUpgradeContainer.class::isInstance)
+            .map(NestedCraftingUpgradeContainer.class::cast);
+        if (nestedContainerOptional.isPresent()) {
+            NestedCraftingUpgradeContainer nestedContainer = nestedContainerOptional.get();
+            useWhitelist = nestedContainer.shouldUseMemorizedBackpackSlotsForNestedCrafting();
+            preserveLastItem = nestedContainer.shouldPreserveLastItem();
+        }
         List<ItemStack> syncedItems = useWhitelist
             ? SyncNestedInventoryPayload.clientWhitelistedProcessingItems
             : SyncNestedInventoryPayload.clientProcessingItems;
 
         for (ItemStack stack : syncedItems) {
-            if (!stack.isEmpty()) available.add(stack.copy());
+            addAvailableStack(available, stack, preserveLastItem);
         }
         for (int i = 0; i < player.getInventory().getContainerSize(); i++) {
             ItemStack stack = player.getInventory().getItem(i);
-            if (!stack.isEmpty()) available.add(stack.copy());
+            addAvailableStack(available, stack, preserveLastItem);
         }
 
         for (Ingredient ingredient : recipe.value().getIngredients()) {
@@ -108,5 +114,18 @@ public class NestedCraftingJeiTransferHandler extends JeiCraftingContainerRecipe
             if (!found) return false;
         }
         return true;
+    }
+
+    private static void addAvailableStack(List<ItemStack> available, ItemStack stack, boolean preserveLastItem) {
+        if (stack.isEmpty()) {
+            return;
+        }
+        ItemStack availableStack = stack.copy();
+        if (preserveLastItem) {
+            availableStack.shrink(1);
+        }
+        if (!availableStack.isEmpty()) {
+            available.add(availableStack);
+        }
     }
 }
