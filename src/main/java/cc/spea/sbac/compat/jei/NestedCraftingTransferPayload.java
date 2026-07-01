@@ -17,7 +17,6 @@ import net.neoforged.neoforge.network.handling.IPayloadContext;
 import net.p3pp3rf1y.sophisticatedbackpacks.common.gui.BackpackContainer;
 import net.p3pp3rf1y.sophisticatedcore.common.gui.ICraftingContainer;
 import net.p3pp3rf1y.sophisticatedcore.common.gui.UpgradeContainerBase;
-import net.p3pp3rf1y.sophisticatedcore.util.InventoryHelper;
 
 import java.util.List;
 
@@ -85,9 +84,8 @@ public record NestedCraftingTransferPayload(ResourceLocation recipeId) implement
                             if (upgradeContainer.getUpgradeWrapper() instanceof NestedCraftingUpgradeWrapper nestedWrapper) {
                                 extracted = NestedCraftingSourceHelper.extractFromCraftingSources(nestedWrapper, ingredient::test);
                             } else {
-                                extracted = InventoryHelper.extractFromInventory(
-                                    ingredient::test, 1, backpackContainer.getStorageWrapper().getInventoryForUpgradeProcessing(), false
-                                );
+                                // Regular crafting upgrade: no nested-backpack refill, only player inventory below
+                                extracted = ItemStack.EMPTY;
                             }
 
                             if (extracted.isEmpty()) {

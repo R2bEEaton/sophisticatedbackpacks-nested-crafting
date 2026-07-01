@@ -56,6 +56,18 @@ public class NestedCraftingJeiTransferHandler extends JeiCraftingContainerRecipe
             return baseResult;
         }
 
+        // Nested-backpack refill via JEI requires the advanced crafting upgrade; with only the
+        // regular crafting upgrade, fall back to vanilla JEI behavior (visible inventory only).
+        boolean hasAdvancedCraftingUpgrade = container.getOpenOrFirstCraftingContainer(net.minecraft.world.item.crafting.RecipeType.CRAFTING)
+            .map(craftingContainer -> craftingContainer instanceof NestedCraftingUpgradeContainer)
+            .orElse(false);
+        if (!hasAdvancedCraftingUpgrade) {
+            if (doTransfer && baseResult == null) {
+                return super.transferRecipe(container, recipe, recipeSlotsView, player, maxTransfer, true);
+            }
+            return baseResult;
+        }
+
         if (doTransfer) {
             if (baseResult == null) {
                 return super.transferRecipe(container, recipe, recipeSlotsView, player, maxTransfer, true);
